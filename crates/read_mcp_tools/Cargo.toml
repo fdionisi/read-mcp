@@ -1,0 +1,15 @@
+[package]
+name = "read_mcp_tools"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+context-server.workspace = true
+htmd.workspace = true
+http-client.workspace = true
+indoc.workspace = true
+serde_json.workspace = true
+readability.workspace = true
+url.workspace = true

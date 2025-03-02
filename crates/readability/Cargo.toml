@@ -1,0 +1,11 @@
+[package]
+name = "readability"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow.workspace = true
+chrono.workspace = true
+regex.workspace = true
+scraper.workspace = true
+url.workspace = true
