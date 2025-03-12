@@ -1,6 +1,6 @@
 [package]
 name = "read_mcp_tools"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 
 [dependencies]
@@ -12,5 +12,5 @@ http-client.workspace = true
 indoc.workspace = true
 scraper.workspace = true
 serde_json.workspace = true
-readability.workspace = true
+readability = { path = "../readability", version = "0.1" }
 url.workspace = true
