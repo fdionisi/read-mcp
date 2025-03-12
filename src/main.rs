@@ -8,7 +8,7 @@ use anyhow::Result;
 use context_server::{ContextServer, ContextServerRpcRequest, ContextServerRpcResponse};
 use http_client::HttpClient;
 use http_client_reqwest::HttpClientReqwest;
-use read_mcp_tools::ReadUrlTool;
+use read_mcp_tools::{FetchRawTool, ReadUrlTool};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use crate::{
@@ -23,8 +23,10 @@ struct ContextServerState {
 impl ContextServerState {
     fn new(http_client: Arc<dyn HttpClient>) -> Result<Self> {
         let resource_registry = Arc::new(ResourceRegistry::default());
+
         let tool_registry = Arc::new(ToolRegistry::default());
         tool_registry.register(Arc::new(ReadUrlTool::new(http_client.clone())));
+        tool_registry.register(Arc::new(FetchRawTool::new(http_client.clone())));
 
         let prompt_registry = Arc::new(PromptRegistry::default());
         Ok(Self {

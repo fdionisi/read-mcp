@@ -50,6 +50,62 @@ impl ToolExecutor for ReadUrlTool {
     }
 }
 
+pub struct FetchRawTool(Arc<dyn HttpClient>);
+
+impl FetchRawTool {
+    pub fn new(http_client: Arc<dyn HttpClient>) -> Self {
+        FetchRawTool(http_client)
+    }
+}
+
+#[async_trait]
+impl ToolExecutor for FetchRawTool {
+    async fn execute(&self, arguments: Option<Value>) -> Result<Vec<ToolContent>> {
+        let url = extract_url(arguments)?;
+        let result = fetch_raw(&self.0, url).await;
+        Ok(vec![ToolContent::Text { text: result? }])
+    }
+
+    fn to_tool(&self) -> Tool {
+        Tool {
+            name: "fetch_raw".into(),
+            description: Some(indoc::formatdoc! {"
+                    This tool retrieves the raw content of a target web page directly from the internet, without any processing or formatting. It returns the original response text as-is. Use this when you need the unmodified HTML or other content from a URL. Ideal for TXT formats.
+
+                    The tool is useful when you need to analyze the raw structure of a webpage or when dealing with non-HTML content types where processing might alter the data. Always ensure you have a valid and complete HTTP(s) URL before using this tool.
+                "}),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL of the web page to fetch raw content from. This should be a valid web address (e.g., https://www.example.com) of the specific page you want to retrieve information from. Ensure the URL is complete and correctly formatted for accurate results."
+                    }
+                },
+                "required": ["url"]
+            }),
+        }
+    }
+}
+
+async fn fetch_raw<H, S>(http_client: H, url: S) -> Result<String>
+where
+    H: HttpClient,
+    S: AsRef<str>,
+{
+    let response = http_client
+        .send(
+            Request::builder()
+                .method(Method::GET)
+                .uri(url.as_ref())
+                .end()?,
+        )
+        .await?;
+
+    let body = response.text().await?;
+    Ok(body)
+}
+
 async fn fetch_and_process<H, S>(http_client: H, url: S) -> Result<String>
 where
     H: HttpClient,
@@ -60,7 +116,6 @@ where
             Request::builder()
                 .method(Method::GET)
                 .uri(url.as_ref())
-                .header("User-Agent", "think-it-mcp")
                 .end()?,
         )
         .await?;
@@ -79,35 +134,27 @@ where
             let url_str = url.as_ref();
             let site_name = article.site_name.unwrap_or_default();
 
-            let byline_section = if !byline.is_empty() {
-                format!("by {byline}")
-            } else {
-                String::new()
-            };
+            let mut result = String::new();
 
-            let site_section = if !site_name.is_empty() {
-                format!("{site_name}")
-            } else {
-                String::new()
-            };
+            if !site_name.is_empty() {
+                result.push_str(&format!("_{}_\n\n", site_name));
+            }
 
-            let date_published = if let Some(date_published) = article.date_published.clone() {
-                format!("{}", date_published.format("%d %B %Y"))
-            } else {
-                String::new()
-            };
+            result.push_str(&format!("# {}\n", title));
 
-            Ok(formatdoc!(
-                "
-                _{site_section}_
+            if !byline.is_empty() {
+                result.push_str(&format!("by {}\n", byline));
+            }
 
-                # {title}
-                {byline_section}
-                {date_published}
-                Available at {url_str}
+            if let Some(date_published) = article.date_published {
+                result.push_str(&format!("{}\n", date_published.format("%d %B %Y")));
+            }
 
-                {markdown}"
-            ))
+            result.push_str(&format!("Available at {}\n\n", url_str));
+            result.push_str("---\n\n");
+            result.push_str(&markdown);
+
+            Ok(result)
         }
         Err(_) => {
             let title = extract_title(&body).unwrap_or_else(|| "No title found".to_string());
