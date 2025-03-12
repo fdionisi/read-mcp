@@ -1256,7 +1256,7 @@ dependencies = [
 
 [[package]]
 name = "read_mcp_tools"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1265,6 +1265,7 @@ dependencies = [
  "http-client",
  "indoc",
  "readability",
+ "scraper",
  "serde_json",
  "url",
 ]
